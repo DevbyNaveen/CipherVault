@@ -1,86 +1,110 @@
 # CipherVault
 
-CipherVault is a Java desktop security project that stores personal files in an encrypted local vault. It is designed to be presentation-ready for a course submission while still being practical enough to reuse as a portfolio project on GitHub.
+A local file vault for your desktop. CipherVault lets you protect sensitive files behind a master password — everything stored on disk is encrypted, nothing is sent anywhere.
 
-## What it does
+---
 
-- Creates a master-password protected vault on first launch
-- Uses `PBKDF2WithHmacSHA256` to derive password hashes and encryption keys
-- Encrypts every imported file with `AES/GCM/NoPadding`
-- Stores encrypted file blobs locally and metadata in `SQLite`
-- Records an audit trail for setup, login attempts, imports, exports, and deletes
-- Offers a JavaFX dashboard for day-to-day use
+## Features
+
+- **Master password setup** — on first launch you create a password; all subsequent access requires it
+- **Strong key derivation** — uses `PBKDF2WithHmacSHA256` with a random salt to turn your password into an encryption key
+- **AES-GCM encryption** — every file you import is encrypted with `AES/GCM/NoPadding` before it touches disk
+- **Local SQLite storage** — file metadata and audit records live in a single database file on your machine
+- **Audit log** — every login attempt, import, export, and deletion is recorded with a timestamp
+- **JavaFX dashboard** — a clean desktop UI for managing your vault day to day
+
+---
 
 ## Tech stack
 
-- Java 21
-- JavaFX
-- SQLite JDBC
-- Maven
-- JUnit 5
+| Layer | Technology |
+|---|---|
+| Language | Java 21 |
+| UI | JavaFX 21 |
+| Database | SQLite via `sqlite-jdbc` |
+| Build | Maven |
+| Testing | JUnit 5 |
+
+---
 
 ## Project structure
 
-```text
+```
 CipherVault/
-  docs/
-  src/
-    main/
-      java/
-      resources/
-    test/
-      java/
-  pom.xml
+├── docs/                          # Additional documentation
+├── src/
+│   ├── main/
+│   │   ├── java/com/ciphervault/
+│   │   │   ├── app/               # Application entry point (Launcher, CipherVaultApp)
+│   │   │   ├── config/            # Path configuration (AppPaths)
+│   │   │   ├── db/                # Database layer (DatabaseManager, repositories)
+│   │   │   ├── model/             # Data models (UserRecord, VaultFileRecord, AuditEntry)
+│   │   │   ├── security/          # Crypto & password logic (CryptoService, PasswordService)
+│   │   │   └── service/           # Application service layer (AppService)
+│   │   └── resources/
+│   └── test/
+│       └── java/com/ciphervault/security/  # Unit tests
+└── pom.xml
 ```
 
-## How to run
+---
 
-### 1. Install prerequisites
+## Getting started
 
-If Java 21 and Maven are not already installed:
+### Prerequisites
+
+You need **Java 21** and **Maven**. On macOS with Homebrew:
 
 ```bash
 brew install openjdk@21 maven
 ```
 
-### 2. Start the app
+### Run the app
 
 ```bash
-cd /Users/naveen/Desktop/112233/CipherVault
-export PATH="/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:$PATH"
-export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+# Set up Java 21 if it's not your default
+export JAVA_HOME="$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Launch
 mvn javafx:run
 ```
 
-### 3. Run tests
+### Run the tests
 
 ```bash
-export PATH="/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:$PATH"
-export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+export JAVA_HOME="$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+
 mvn test
 ```
 
-## Where data is stored
+---
 
-CipherVault stores runtime data in:
+## Where your data lives
 
-```text
+CipherVault keeps everything under your home directory:
+
+```
 ~/.ciphervault/
+├── ciphervault.db     ← SQLite database (metadata + audit log)
+└── vault/             ← Encrypted file blobs
 ```
 
-That folder contains:
+Nothing is written anywhere else and nothing leaves your machine.
 
-- `ciphervault.db` for SQLite metadata and audit entries
-- `vault/` for encrypted file blobs
+---
 
-## Why this has GitHub value
+## How the security works
 
-- It shows real security concepts, not just basic CRUD
-- It is easy to demo with screenshots and a short video
-- It includes architecture, persistence, cryptography, UI, and tests
-- It can be extended later into backup, restore, tagging, or multi-user versions
+1. **On setup** — your master password is hashed with `PBKDF2WithHmacSHA256` (random salt, 310 000 iterations) and stored. The same password is used to derive the AES key.
+2. **On login** — the entered password is re-derived and compared against the stored hash. Wrong password means no access.
+3. **On import** — the file is read into memory, encrypted with AES-256-GCM (random IV), and written to `~/.ciphervault/vault/`. Only the ciphertext ever touches disk.
+4. **On export** — the encrypted blob is decrypted in memory and written to your chosen destination.
 
-## Docs
+---
 
-- [Project Plan](/Users/naveen/Desktop/112233/CipherVault/docs/PROJECT_PLAN.md)
-- [Research Notes](/Users/naveen/Desktop/112233/CipherVault/docs/RESEARCH_NOTES.md)
+## Documentation
+
+- [Project Plan](docs/PROJECT_PLAN.md)
+- [Research Notes](docs/RESEARCH_NOTES.md)
